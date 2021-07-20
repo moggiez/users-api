@@ -2,7 +2,7 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
   name = "users-api_lambda_access_dynamodb_policy"
   path = "/"
 
-  policy = templatefile("templates/dynamo_access_policy.json", { table = aws_dynamodb_table.organisations.name })
+  policy = templatefile("templates/dynamo_access_policy.json", { table = "organisations" })
 }
 
 module "api_lambda" {
