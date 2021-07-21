@@ -32,3 +32,4 @@ src/node_modules
 dist/
 node_modules/
 coverage/
+report.json
