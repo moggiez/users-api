@@ -2,7 +2,6 @@
 
 const config = require("./config");
 const db = require("moggies-db");
-const mapper = require("./mapper");
 const organisations = new db.Table(db.tableConfigs.organisations);
 
 exports.getOrg = async (userId, response) => {
