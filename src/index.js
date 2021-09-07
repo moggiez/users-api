@@ -1,27 +1,54 @@
 "use strict";
 
-const config = require("./config");
-const helpers = require("moggies-lambda-helpers");
-const auth = require("moggies-auth");
-const handlers = require("./handlers");
+const AWS = require("aws-sdk");
+const helpers = require("@moggiez/moggies-lambda-helpers");
+const auth = require("@moggiez/moggies-auth");
+const db = require("@moggiez/moggies-db");
 
-exports.handler = function (event, context, callback) {
+const { Handler } = require("./handler");
+const { InternalHandler } = require("./internalHandler");
+
+const TABLE_CONFIG = {
+  tableName: "organisations",
+  hashKey: "OrganisationId",
+  sortKey: "UserId",
+  indexes: {
+    UserOrganisations: {
+      hashKey: "UserId",
+      sortKey: "OrganisationId",
+    },
+  },
+};
+
+const DEBUG = false;
+
+const getRequest = (event) => {
+  const user = auth.getUserFromEvent(event);
+  const request = helpers.getRequestFromEvent(event);
+  request.user = user;
+
+  return request;
+};
+
+exports.handler = async function (event, context, callback) {
   const response = helpers.getResponseFn(callback);
 
-  if (config.DEBUG) {
-    response(200, event, config.headers);
+  if (DEBUG) {
+    response(200, event);
   }
 
-  const user = auth.getUserFromEvent(event);
+  const table = new db.Table({ config: TABLE_CONFIG, AWS });
 
-  const httpMethod = event.httpMethod;
-  try {
-    if (httpMethod == "GET") {
-      handlers.getOrg(user.id, response);
-    } else {
-      response(500, "Not supported.", config.headers);
+  if ("isInternal" in event && event.isInternal) {
+    if (DEBUG) {
+      return event;
     }
-  } catch (err) {
-    response(500, err, config.headers);
+
+    const internalHandler = new InternalHandler({ table });
+    return await internalHandler.handle(event);
+  } else {
+    const request = getRequest(event);
+    const handler = new Handler({ table });
+    await handler.handle(request, response);
   }
 };
